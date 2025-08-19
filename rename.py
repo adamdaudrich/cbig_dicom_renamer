@@ -1,71 +1,19 @@
-#!/usr/bin/env python3
-"""
-DICOM Renamer Script
-
-This script uses the CBIGR API to rename all dicom directories and the Patient Name headers
-(0010,0010) of each dicom file. This prepares the dicoms for 
-a) direct ingestion 
-or 
-b)bids conversion + eventual ingestion 
-
-Requirements:
-    pip install pydicom
-
-Usage:
-    python dicom_rename.py /path/to/dicom/folder "New Patient Name"
-"""
+import os
+import pydicom
+import requests
 
 
 
-def parse_arguments():
-    """Parse and return command line arguments."""
-    parser = argparse.ArgumentParser(
-        description='Rename DICOM archive and patient names based on CBIGR API mapping'
-    )
-    
-    parser.add_argument('dicom_archive', 
-                       help='Path to DICOM archive directory')
-    
-    return parser.parse_args()
 
-def validate_dicom_directory(dicom_archive_path):
-    """
-    Validate DICOM archive path before processing
-    arg: str
-    returns: bool.
-    """
-    # Check if directory exists
-    if not os.path.exists(dicom_archive_path):
-        print(f"Error: Directory '{dicom_archive_path}' does not exist")
-        return False
-    
-    if not os.path.isdir(dicom_archive_path):
-        print(f"Error: '{dicom_archive_path}' is not a directory")
-        return False
-    
-    # Fast check for subdirectories - exit immediately if found
-    try:
-        for item in os.listdir(dicom_archive_path):
-            item_path = os.path.join(dicom_archive_path, item)
-            if os.path.isdir(item_path):
-                print(f"Error: DICOM archive contains subdirectories (found: '{item}')")
-                print("This function expects a flat directory structure with DICOM files only.")
-                return False
-    except OSError as e:
-        print(f"Error reading directory: {e}")
-        return False
-    
-    print("✓ DICOM archive structure validated")
-    return True
-
-def rename_dicom_archive(filepath, cbig_label):
+def rename_archive(new_name):
     """
     Essentially mv <old_name> <new_name> for the current archive
     if it's already been renamed, skip
     """
+    print(f"your dicom archive will be renamed to {x}. 
+          The old Archive name is still stored in data_state.json"
 
-
-def rename_patient_name(filepath, new_patient_name, backup=True, dry_run=False):
+def rename_patient_name(new_name, backup=True, dry_run=False):
     """
     Process a single file: check if DICOM, and update patient name if requested.
     
@@ -126,16 +74,17 @@ def rename_patient_name(filepath, new_patient_name, backup=True, dry_run=False):
         return True, False, None
 
 
-def rename_all_patient_names(directory, cbig_label, backup=False, dry_run=False):
+def rename_all_patient_names(directory, cbig_label, dry_run=False):
     """
-    rename all DICOMS in the current archive, checking the file if it's a DICOM (isdicom = true)
-    is_dicom is from rename_patient_name
+    checks status of archive in json.
+    renames all DICOMS, or starts at the file that is unnamed 
+    so if 0010,0010 = (str), skip
+    if 0010,0010 != str, execute reaname_patient_name()
     
     Args:
         directory (str): Root directory to search
         new_patient_name (str): New patient name
-        backup (bool): Whether to create backups
-        dry_run (bool): If True, only show what would be changed
+
         
     Returns:
         tuple: (success_count, total_dicom_count)
